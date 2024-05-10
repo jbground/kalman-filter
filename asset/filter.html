@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.min.js"></script>
+    <style>
+        .kalman {
+            margin-top: 0px;
+            margin-left: 20px;
+            margin-right: 0;
+            margin-bottom: 0px;
+            border: 1px solid black;
+            padding: 0;
+        }
+
+    </style>
+</head>
+<body>
+<!--<p>0 < x, y < 10 의 균등분포를 생성<button type="button" onclick="uniformData()"> 생성</button></p>-->
+<p>1. 정규분포인 PDF(Probability Density Function, 확률밀도함수)를 생성한다. <button type="button" onclick="createPdfData()"> 생성</button></p>
+<!--<p>3. PDF 함수에 노이즈를 발생시킨다. <button type="button" onclick="createNoiseData()">노이즈 생성</button></p>-->
+<p>2. 칼만필터를 이용하여 보정한다. <button type="button" onclick="execKalmanFilter()"> 칼만필터</button></p>
+<canvas id="noise-coord" class="kalman" width="500" height="500"></canvas>
+<canvas id="kalman-coord" class="kalman" width="500" height="500"></canvas>
+<!--<canvas id="noise-chart" class="kalman" width="500" height="500"></canvas>-->
+<!--<canvas id="kalman-chart" class="kalman" width="500" height="500"></canvas>-->
+<script>
+    // const coords = Array.from(Array(1000), () => new Array(2));
+
+    let payload = [1000];
+
+    var arr = Array.from(Array(1000), () => new Array(2));
+    function uniformData(){
+        axios({
+            method: "get",
+            params: {
+            },
+            headers: {
+                "Content-Type": "application/json",
+            },
+            url: "/kalman/uniform",
+        })
+        .then((res) => {
+
+            //좌표평면 작성
+            var ctx = document.getElementById("noise-coord").getContext("2d");
+            ctx.clearRect(0, 0, 500, 500);
+
+            for (var i = 0; i < res.data.length; i++) {
+                arr[i][0] = res.data[i].x
+                arr[i][1] = res.data[i].y
+
+                ctx.beginPath();
+                ctx.arc(res.data[i].x * 50, res.data[i].y * 50, 2, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.fillStyle = "green";
+                ctx.fill();
+            }
+            console.log(arr)
+
+            //차트
+            var chart_data = createChartData(res.data)
+            //noise-coord
+            var canvas = document.getElementById("noise-chart");
+            var context = canvas.getContext("2d");
+            var sw = canvas.width;
+            var sh = canvas.height;
+            context.clearRect(0, 0, sw, sh);
+
+            var barwidth = 20;
+            var barheight;
+            var xcoord = 5;
+            var base = 10;
+
+            for (var i = 0; i < chart_data.length; i++) {
+                barheight = chart_data[i];
+                context.fillStyle = "blue";
+                context.fillRect(xcoord, (sh - barheight) - base, barwidth, barheight);
+                xcoord += barwidth + 5;
+            }
+
+            // var text_xcoord = 10;
+            // var sell_point = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+            //
+            // for (var i = 0; i < sell_point.length; i++) {
+            //     context.textAlign = "center";
+            //     context.fillStyle = "red";
+            //     context.font = "12pt Century Gothic";
+            //     context.fillText(sell_point[i], text_xcoord, (sh - barheight) - (base / 3));
+            //     text_xcoord += barwidth + 30
+            // }
+
+        })
+        .catch((error) => {
+            console.log(error);
+        });
+    }
+
+
+    function createPdfData(){
+        axios({
+            url : '/kalman/pdf',
+            method : 'post',
+            headers: {
+                "Content-Type": "application/json",
+            },
+            data: payload,
+
+        })
+        .then((res) =>{
+                //좌표 평면
+            var ctx = document.getElementById("noise-coord").getContext("2d");
+            ctx.clearRect(0, 0, 500, 500);
+
+            for (var i = 0; i < res.data.length; i++) {
+                // payload.push({"x":res.data[i].x, "y": res.data[i].y})
+                payload[i] = {"x":res.data[i].x, "y": res.data[i].y}
+
+                ctx.beginPath();
+                ctx.arc(res.data[i].x * 50, res.data[i].y * 50, 2, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.fillStyle = "green";
+                ctx.fill();
+            }
+            console.log(payload);
+        })
+        .catch((error) => {
+            console.log(error);
+        })
+    }
+
+
+    function execKalmanFilter(){
+        axios({
+            url: "/kalman/exec",
+            method: "post",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            data : payload,
+        })
+            .then((res) => {
+
+                <!--                 좌표평면 작성                    -->
+                var ctx = document.getElementById("kalman-coord").getContext("2d");
+                ctx.clearRect(0, 0, 500, 500);
+
+                for (var i = 0; i < res.data.length; i++) {
+                    ctx.beginPath();
+                    ctx.arc(res.data[i].x * 50, res.data[i].y * 50, 2, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.fillStyle = "green";
+                    ctx.fill();
+                }
+
+                // <!--              차트                  -->
+                // var chart_data = createChartData(res.data)
+                // //noise-coord
+                // var canvas = document.getElementById("kalman-chart");
+                // var context = canvas.getContext("2d");
+                // var sw = canvas.width;
+                // var sh = canvas.height;
+                // context.clearRect(0, 0, sw, sh);
+                //
+                // var barwidth = 20;
+                // var barheight;
+                // var xcoord = 5;
+                // var base = 90;
+                //
+                // for (var i = 0; i < chart_data.length; i++) {
+                //     barheight = chart_data[i];
+                //     context.fillStyle = "blue";
+                //     context.fillRect(xcoord, (sh - barheight) - base, barwidth, barheight);
+                //     xcoord += barwidth + 5;
+                // }
+                //
+                // var text_xcoord = 10;
+                // var sell_point = ["0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0"]
+                //
+                // for (var i = 0; i < sell_point.length; i++) {
+                //     context.textAlign = "center";
+                //     context.fillStyle = "red";
+                //     context.font = "12pt Century Gothic";
+                //     context.fillText(sell_point[i], text_xcoord, (sh - barheight) - (base / 3));
+                //     text_xcoord += barwidth + 30
+                // }
+
+            })
+            .catch((error) => {
+                console.log(error);
+            });
+    }
+
+    function createChartData(data){
+        var chart_data = [0, 0, 0, 0, 10, 10, 10, 10, 10, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+
+        for (var i = 0; i < data.length; i++) {
+            switch (true) {
+                case(data[i].x < 0.05):
+                    chart_data[0]++;
+                    break;
+                case(data[i].x < 0.1):
+                    chart_data[1]++;
+                    break;
+                case(data[i].x < 0.15):
+                    chart_data[2]++;
+                    break;
+                case(data[i].x < 0.2):
+                    chart_data[3]++;
+                    break;
+                case(data[i].x < 0.25):
+                    chart_data[4]++;
+                    break;
+                case(data[i].x < 0.3):
+                    chart_data[5]++;
+                    break;
+                case(data[i].x < 0.35):
+                    chart_data[6]++;
+                    break;
+                case(data[i].x < 0.4):
+                    chart_data[7]++;
+                    break;
+                case(data[i].x < 0.45):
+                    chart_data[8]++;
+                    break;
+                case(data[i].x < 0.5):
+                    chart_data[9]++;
+                    break;
+                case(data[i].x < 0.55):
+                    chart_data[10]++;
+                    break;
+                case(data[i].x < 0.6):
+                    chart_data[11]++;
+                    break;
+                case(data[i].x < 0.65):
+                    chart_data[12]++;
+                    break;
+                case(data[i].x < 0.7):
+                    chart_data[13]++;
+                    break;
+                case(data[i].x < 0.75):
+                    chart_data[14]++;
+                    break;
+                case(data[i].x < 0.8):
+                    chart_data[15]++;
+                    break;
+                case(data[i].x < 0.85):
+                    chart_data[16]++;
+                    break;
+                case(data[i].x < 0.9):
+                    chart_data[17]++;
+                    break;
+                case(data[i].x < 0.95):
+                    chart_data[18]++;
+                    break;
+                case(data[i].x < 1):
+                    chart_data[19]++;
+                    break;
+            }
+        }
+        return chart_data;
+    }
+
+</script>
+</body>
+</html>
